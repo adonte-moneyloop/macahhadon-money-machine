@@ -1,0 +1,14 @@
+{
+  "functions": {
+    "api/loop.py": {
+      "memory": 1024,
+      "maxDuration": 60
+    }
+  },
+  "crons": [
+    {
+      "path": "/api/loop",
+      "schedule": "*/5 * * * *"
+    }
+  ]
+}
