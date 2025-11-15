@@ -2,9 +2,9 @@ name: Macahhdon Money Machine
 
 on:
   schedule:
-    - cron: '*/30 * * * *'
+    - cron: '*/1 * * * *'  # Every MINUTE (60 runs/hour = $3.00/hour)
   workflow_dispatch:
-
+  
 permissions:
   contents: write
 
