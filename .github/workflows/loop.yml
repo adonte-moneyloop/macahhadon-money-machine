@@ -28,7 +28,7 @@ jobs:
         with:
           python-version: "3.12"
 
-      # (Optional) Keep if loop.py ever uses requests; safe to leave or remove
+      # Keep this in case loop.py uses requests later; safe to leave even if unused
       - name: Install dependencies
         run: pip install requests
 
@@ -42,7 +42,7 @@ jobs:
           git config user.email "actions@github.com"
           git config user.name "GitHub Actions"
 
-          # Try to rebase on latest main to reduce push conflicts between matrix jobs
+          # Pull latest main to reduce push conflicts between matrix jobs
           git pull --rebase origin main || true
 
           git add wallet_${{ matrix.instance }}.txt
@@ -71,24 +71,21 @@ jobs:
           python - << 'EOF'
           from decimal import Decimal
           import glob
-          import os
 
           wallet_files = glob.glob("wallet_*.txt")
 
           # If no wallet files yet, initialize total to 0
-          if not wallet_files:
-            total = Decimal("0")
-          else:
-            total = Decimal("0")
-            for f in wallet_files:
-              try:
-                raw = open(f).read().strip().lstrip("$")
-                if not raw:
-                  continue
-                total += Decimal(raw)
-              except Exception:
-                # Skip any malformed wallet file instead of failing the whole job
+          total = Decimal("0")
+
+          for f in wallet_files:
+            try:
+              raw = open(f).read().strip().lstrip("$")
+              if not raw:
                 continue
+              total += Decimal(raw)
+            except Exception:
+              # Skip malformed wallet files instead of failing the job
+              continue
 
           with open("total_wallet.txt", "w") as out:
             out.write(f"${total:.4f}")
