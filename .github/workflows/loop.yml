@@ -2,7 +2,7 @@ name: Macahhdon Money Machine
 
 on:
   schedule:
-    - cron: '*/5 * * * *'  # Every 5 minutes (GitHub min)
+    - cron: "*/5 * * * *"   # Runs every 5 minutes
   workflow_dispatch:
 
 permissions:
@@ -14,57 +14,65 @@ jobs:
       matrix:
         instance: [1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20]
       fail-fast: false
+
     runs-on: ubuntu-latest
+
     steps:
-      - name: Checkout
+      - name: Checkout repository
         uses: actions/checkout@v4
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Set up Python
+      - name: Set up Python 3.12
         uses: actions/setup-python@v5
         with:
-          python-version: '3.12'
+          python-version: "3.12"
 
-      - name: Install requests
+      - name: Install dependencies
         run: pip install requests
 
-      - name: Run loop
+      - name: Run loop.py for this instance
         env:
-          GROK_KEY: ${{ secrets.GROK_KEY }}
           INSTANCE_ID: ${{ matrix.instance }}
         run: python loop.py
 
-      - name: Commit instance wallet
+      - name: Commit updated wallet file
         run: |
           git config user.email "actions@github.com"
           git config user.name "GitHub Actions"
           git add wallet_${{ matrix.instance }}.txt
-          git commit -m "Instance ${{ matrix.instance }}: $(cat wallet_${{ matrix.instance }}.txt)" || exit 0
+          git commit -m "Instance ${{ matrix.instance }} updated wallet: $(cat wallet_${{ matrix.instance }}.txt)" || exit 0
           git push origin main || true
 
   sum-wallets:
     needs: run-loop
     runs-on: ubuntu-latest
+
     steps:
-      - name: Checkout
+      - name: Checkout repository
         uses: actions/checkout@v4
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Sum wallets
+      - name: Sum all instance wallets
         run: |
-          python -c "
+          python - << 'EOF'
           from decimal import Decimal
           import glob
-          total = sum(Decimal(open(f).read().strip().lstrip('$')) for f in glob.glob('wallet_*.txt'))
-          open('total_wallet.txt', 'w').write(f'${total:.4f}')
-          "
 
-      - name: Commit total wallet
+          total = sum(
+              Decimal(open(f).read().strip().lstrip("$"))
+              for f in glob.glob("wallet_*.txt")
+          )
+
+          with open("total_wallet.txt", "w") as out:
+              out.write(f"${total:.4f}")
+          EOF
+
+      - name: Commit total wallet file
         run: |
           git config user.email "actions@github.com"
           git config user.name "GitHub Actions"
           git add total_wallet.txt
-          git commit -m "TOTAL WALLET: $(cat total_wallet.txt)" || exit 0
+          git commit -m "TOTAL WALLET UPDATED: $(cat total_wallet.txt)" || exit 0
           git push origin main || true
