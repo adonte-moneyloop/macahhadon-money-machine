@@ -28,10 +28,11 @@ jobs:
 
       - name: Run loop
         env:
+          GROK_KEY: ${{ secrets.GROK_KEY }}
           INSTANCE_ID: ${{ matrix.instance }}
-          ULTRA_FAST: "1"
+          ULTRA_FAST: "1"   # TURN ON MAX SPEED
         run: python loop.py
-
+        
       - name: Commit instance wallet
         run: |
           git config user.email "actions@github.com"
