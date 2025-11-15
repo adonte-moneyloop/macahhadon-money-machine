@@ -1,8 +1,8 @@
-name: Macahhdon Money Machine - MAX SPEED
+name: Macahhdon Money Machine
 
 on:
   schedule:
-    - cron: '*/30 * * * *'  # Every 30 seconds
+    - cron: '*/30 * * * *'  # EVERY 30 SECONDS
   workflow_dispatch:
 
 permissions:
@@ -12,7 +12,7 @@ jobs:
   run-loop:
     strategy:
       matrix:
-        instance: [1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20]  # 20 JOBS
+        instance: [1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20]
       fail-fast: false
     runs-on: ubuntu-latest
     steps:
@@ -33,9 +33,10 @@ jobs:
         env:
           GROK_KEY: ${{ secrets.GROK_KEY }}
           INSTANCE_ID: ${{ matrix.instance }}
+          ULTRA_FAST: "1"   # ULTRA-FAST MODE
         run: python loop.py
 
-      - name: Commit with retry
+      - name: Commit instance wallet
         run: |
           git config user.email "actions@github.com"
           git config user.name "GitHub Actions"
@@ -44,24 +45,3 @@ jobs:
           git add wallet_${{ matrix.instance }}.txt
           git commit -m "I${{ matrix.instance }}:$(cat wallet_${{ matrix.instance }}.txt)" || exit 0
           for i in {1..3}; do git push origin main && break; sleep 2; done
-
-  sum-wallets:
-    needs: run-loop
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-      - name: Sum wallets
-        run: |
-          python -c "
-          from decimal import Decimal
-          import glob
-          total = sum(Decimal(open(f).read().strip().lstrip('$')) for f in glob.glob('wallet_*.txt'))
-          open('total_wallet.txt', 'w').write(f'${total:.4f}')
-          "
-      - name: Commit total
-        run: |
-          git pull --rebase origin main || true
-          git add total_wallet.txt
-          git commit -m "TOTAL: $(cat total_wallet.txt)" || exit 0
-          git push origin main
