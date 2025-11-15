@@ -2,7 +2,7 @@ name: Macahhdon Money Machine
 
 on:
   schedule:
-    - cron: "*/5 * * * *"   # Every 5 minutes
+    - cron: "*/5 * * * *"  # Every 5 minutes
   workflow_dispatch:
 
 permissions:
@@ -14,9 +14,7 @@ jobs:
       matrix:
         instance: [1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20]
       fail-fast: false
-
     runs-on: ubuntu-latest
-
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -28,10 +26,6 @@ jobs:
         with:
           python-version: "3.12"
 
-      # Keep this in case loop.py uses requests later; safe to leave even if unused
-      - name: Install dependencies
-        run: pip install requests
-
       - name: Run loop.py for this instance
         env:
           INSTANCE_ID: ${{ matrix.instance }}
@@ -41,10 +35,7 @@ jobs:
         run: |
           git config user.email "actions@github.com"
           git config user.name "GitHub Actions"
-
-          # Pull latest main to reduce push conflicts between matrix jobs
           git pull --rebase origin main || true
-
           git add wallet_${{ matrix.instance }}.txt
           git commit -m "Instance ${{ matrix.instance }} updated wallet: $(cat wallet_${{ matrix.instance }}.txt)" || exit 0
           git push origin main || true
@@ -52,50 +43,32 @@ jobs:
   sum-wallets:
     needs: run-loop
     runs-on: ubuntu-latest
-
     steps:
       - name: Checkout repository at latest main
         uses: actions/checkout@v4
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
-          fetch-depth: 0   # get full history so we can reset to latest
+          fetch-depth: 0
 
-      - name: Sync to latest main (include matrix commits)
+      - name: Sync to latest main
         run: |
           git fetch origin main
           git checkout main
           git reset --hard origin/main
 
-      - name: Sum all instance wallets into total_wallet.txt
+      - name: Sum all instance wallets
         run: |
-          python - << 'EOF'
+          python -c "
           from decimal import Decimal
           import glob
-
-          wallet_files = glob.glob("wallet_*.txt")
-
-          # If no wallet files yet, initialize total to 0
-          total = Decimal("0")
-
-          for f in wallet_files:
-            try:
-              raw = open(f).read().strip().lstrip("$")
-              if not raw:
-                continue
-              total += Decimal(raw)
-            except Exception:
-              # Skip malformed wallet files instead of failing the job
-              continue
-
-          with open("total_wallet.txt", "w") as out:
-            out.write(f"${total:.4f}")
-          EOF
+          total = sum(Decimal(open(f).read().strip().lstrip('$')) for f in glob.glob('wallet_*.txt') if open(f).read().strip())
+          open('total_wallet.txt', 'w').write(f'${total:.4f}')
+          "
 
       - name: Commit updated total wallet
         run: |
           git config user.email "actions@github.com"
           git config user.name "GitHub Actions"
-
           git add total_wallet.txt
           git commit -m "TOTAL WALLET UPDATED: $(cat total_wallet.txt)" || exit 0
           git push origin main || true
