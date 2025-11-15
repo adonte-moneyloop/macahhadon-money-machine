@@ -2,7 +2,7 @@ name: Macahhdon Money Machine
 
 on:
   schedule:
-    - cron: '*/30 * * * *'  # EVERY 30 SECONDS
+    - cron: '*/1 * * * *'  # EVERY 30 SECONDS
   workflow_dispatch:
 
 permissions:
