@@ -9,9 +9,9 @@ f = f"wallet_{i}.txt"
 try:
     w = Decimal(open(f).read().strip().lstrip("$"))
 except:
-    w += Decimal("0.05")
+    w = Decimal("0")
 
-# $0.05 per job
+# Earn $0.05 per job (20 jobs × 2/hour = $2.00/hour)
 w += Decimal("0.05")
 
 # Save wallet (fast write)
