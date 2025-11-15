@@ -39,10 +39,15 @@ jobs:
         run: |
           git config user.email "actions@github.com"
           git config user.name "GitHub Actions"
+          sleep $((RANDOM % 10))  # Random delay 0–9s
           git pull --rebase origin main || true
           git add wallet_${{ matrix.instance }}.txt
           git commit -m "Instance ${{ matrix.instance }}: $(cat wallet_${{ matrix.instance }}.txt 2>/dev/null || echo '$0.00')" || exit 0
-          git push origin main
+          for i in {1..5}; do
+            git push origin main && break
+            echo "Push failed, retrying in 5s..."
+            sleep 5
+          done
 
   sum-wallets:
     needs: run-loop
@@ -55,7 +60,7 @@ jobs:
           token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Wait for all pushes
-        run: sleep 60
+        run: sleep 90
 
       - name: Pull latest
         run: git pull --rebase origin main || true
@@ -88,4 +93,7 @@ jobs:
           git pull --rebase origin main || true
           git add total_wallet.txt
           git commit -m "MACAHHHDON TOTAL WALLET: $(cat total_wallet.txt)" || exit 0
-          git push origin main
+          for i in {1..5}; do
+            git push origin main && break
+            sleep 5
+          done
