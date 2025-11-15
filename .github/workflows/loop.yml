@@ -2,7 +2,7 @@ name: Macahhdon Money Machine
 
 on:
   schedule:
-    - cron: '*/30 * * * *'
+    - cron: '*/5 * * * *'  # Every 5 minutes (GitHub min)
   workflow_dispatch:
 
 permissions:
@@ -26,20 +26,22 @@ jobs:
         with:
           python-version: '3.12'
 
+      - name: Install requests
+        run: pip install requests
+
       - name: Run loop
         env:
+          GROK_KEY: ${{ secrets.GROK_KEY }}
           INSTANCE_ID: ${{ matrix.instance }}
-          ULTRA_FAST: "1"
         run: python loop.py
 
       - name: Commit instance wallet
         run: |
           git config user.email "actions@github.com"
           git config user.name "GitHub Actions"
-          sleep $((RANDOM % 10))
           git add wallet_${{ matrix.instance }}.txt
-          git commit -m "I${{ matrix.instance }}:$(cat wallet_${{ matrix.instance }}.txt)" || exit 0
-          git push origin main || echo "Push skipped"
+          git commit -m "Instance ${{ matrix.instance }}: $(cat wallet_${{ matrix.instance }}.txt)" || exit 0
+          git push origin main || true
 
   sum-wallets:
     needs: run-loop
@@ -50,12 +52,6 @@ jobs:
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Wait for all pushes
-        run: sleep 120  # Wait 2 minutes for all 20 jobs
-
-      - name: Pull latest
-        run: git pull --rebase origin main || true
-
       - name: Sum wallets
         run: |
           python -c "
@@ -63,7 +59,6 @@ jobs:
           import glob
           total = sum(Decimal(open(f).read().strip().lstrip('$')) for f in glob.glob('wallet_*.txt'))
           open('total_wallet.txt', 'w').write(f'${total:.4f}')
-          print('TOTAL: ${total:.4f}')
           "
 
       - name: Commit total wallet
@@ -71,5 +66,5 @@ jobs:
           git config user.email "actions@github.com"
           git config user.name "GitHub Actions"
           git add total_wallet.txt
-          git commit -m "TOTAL: $(cat total_wallet.txt)" || exit 0
-          git push origin main
+          git commit -m "TOTAL WALLET: $(cat total_wallet.txt)" || exit 0
+          git push origin main || true
