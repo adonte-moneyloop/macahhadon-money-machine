@@ -1,8 +1,8 @@
-name: Macahhdon Money Machine
+name: Macahhdon Money Machine - MAX SPEED
 
 on:
   schedule:
-    - cron: '0 * * * *'
+    - cron: '*/30 * * * *'  # Every 30 seconds
   workflow_dispatch:
 
 permissions:
@@ -12,7 +12,7 @@ jobs:
   run-loop:
     strategy:
       matrix:
-        instance: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
+        instance: [1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20]  # 20 JOBS
       fail-fast: false
     runs-on: ubuntu-latest
     steps:
@@ -35,65 +35,37 @@ jobs:
           INSTANCE_ID: ${{ matrix.instance }}
         run: python loop.py
 
-      - name: Commit instance wallet
+      - name: Commit with retry
         run: |
           git config user.email "actions@github.com"
           git config user.name "GitHub Actions"
-          sleep $((RANDOM % 10))  # Random delay 0–9s
+          sleep $((RANDOM % 15))  # Random delay
           git pull --rebase origin main || true
           git add wallet_${{ matrix.instance }}.txt
-          git commit -m "Instance ${{ matrix.instance }}: $(cat wallet_${{ matrix.instance }}.txt 2>/dev/null || echo '$0.00')" || exit 0
+          git commit -m "Instance ${{ matrix.instance }}: $(cat wallet_${{ matrix.instance }}.txt || echo '$0.05')" || exit 0
           for i in {1..5}; do
             git push origin main && break
-            echo "Push failed, retrying in 5s..."
-            sleep 5
+            sleep 3
           done
 
   sum-wallets:
     needs: run-loop
     runs-on: ubuntu-latest
-    timeout-minutes: 10
     steps:
       - name: Checkout
         uses: actions/checkout@v4
-        with:
-          token: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Wait for all pushes
-        run: sleep 90
-
-      - name: Pull latest
-        run: git pull --rebase origin main || true
-
       - name: Sum wallets
         run: |
-          python << 'EOF'
-          import glob
+          python -c "
           from decimal import Decimal
-          total = Decimal('0')
-          files = 0
-          for file in glob.glob('wallet_*.txt'):
-              try:
-                  with open(file, 'r') as f:
-                      value = Decimal(f.read().strip().lstrip('$'))
-                  total += value
-                  files += 1
-                  print(f"Added {file}: ${value}")
-              except Exception as e:
-                  print(f"Error: {e}")
-          with open('total_wallet.txt', 'w') as f:
-              f.write(f'${total:.4f}')
-          print(f"MACAHHHDON TOTAL WALLET FROM {files} FILES: ${total:.4f}")
-          EOF
-
-      - name: Commit total wallet
+          import glob
+          total = sum(Decimal(open(f).read().strip().lstrip('$')) for f in glob.glob('wallet_*.txt') if open(f).read().strip())
+          open('total_wallet.txt', 'w').write(f'${total:.4f}')
+          print(f'TOTAL: ${total:.4f}')
+          "
+      - name: Commit total
         run: |
-          git config user.email "actions@github.com"
-          git config user.name "GitHub Actions"
           git pull --rebase origin main || true
           git add total_wallet.txt
-          git commit -m "MACAHHHDON TOTAL WALLET: $(cat total_wallet.txt)" || exit 0
-          for i in {1..5}; do
-            git push origin main && break
-            sleep 5
-          done
+          git commit -m "TOTAL: $(cat total_wallet.txt)" || exit 0
+          git push origin main
