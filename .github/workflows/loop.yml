@@ -1,0 +1,86 @@
+name: Macahhdon Money Machine
+
+on:
+  schedule:
+    - cron: '0 * * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  run-loop:
+    strategy:
+      matrix:
+        instance: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
+      fail-fast: false
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install requests
+        run: pip install requests
+
+      - name: Run loop
+        env:
+          GROK_KEY: ${{ secrets.GROK_KEY }}
+          INSTANCE_ID: ${{ matrix.instance }}
+        run: python loop.py
+
+      - name: Commit instance wallet
+        run: |
+          git config user.email "actions@github.com"
+          git config user.name "GitHub Actions"
+          git add wallet_${{ matrix.instance }}.txt
+          git commit -m "Instance ${{ matrix.instance }}: $(cat wallet_${{ matrix.instance }}.txt 2>/dev/null || echo '$0.00')" || exit 0
+          git push origin main || echo "Push skipped"
+
+  sum-wallets:
+    needs: run-loop
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Wait for all pushes
+        run: sleep 60
+
+      - name: Sum wallets
+        run: |
+          python << 'EOF'
+          import glob
+          from decimal import Decimal
+          total = Decimal('0')
+          files = 0
+          for file in glob.glob('wallet_*.txt'):
+              try:
+                  with open(file, 'r') as f:
+                      value = Decimal(f.read().strip().lstrip('$'))
+                  total += value
+                  files += 1
+                  print(f"Added {file}: ${value}")
+              except Exception as e:
+                  print(f"Error: {e}")
+          with open('total_wallet.txt', 'w') as f:
+              f.write(f'${total:.4f}')
+          print(f"MACAHHHDON TOTAL WALLET FROM {files} FILES: ${total:.4f}")
+          EOF
+
+      - name: Commit total wallet
+        run: |
+          git config user.email "actions@github.com"
+          git config user.name "GitHub Actions"
+          git add total_wallet.txt
+          git commit -m "MACAHHHDON TOTAL WALLET: $(cat total_wallet.txt)" || exit 0
+          git push origin main
