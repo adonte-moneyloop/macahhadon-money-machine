@@ -4,8 +4,7 @@
   <title>Macahhdon Money Machine</title>
   <meta name="viewport" content="width=device-width, initial-scale=1">
 
-  <!-- Basic meta for sharing -->
-  <meta name="description" content="Macahhdon Money Machine – Earn $360/month FREE with AI-powered automation on GitHub. Fork, run, and watch the LIVE WALLET grow in real time.">
+  <meta name="description" content="Macahhdon Money Machine – Earn up to $360/month with an automated GitHub Actions AI wallet. Fork it, run it, and watch the live balance grow.">
 
   <style>
     :root {
@@ -34,7 +33,6 @@
       overflow-x: hidden;
     }
 
-    /* Animated glow grid background */
     body::before {
       content: "";
       position: fixed;
@@ -95,6 +93,7 @@
       color: var(--accent);
       text-shadow: 0 0 12px var(--accent), 0 0 30px rgba(0,255,255,0.7);
       margin-bottom: 8px;
+      text-align: center;
     }
 
     .subtitle {
@@ -103,12 +102,14 @@
       letter-spacing: 0.15em;
       text-transform: uppercase;
       color: #a5f3ff;
+      text-align: center;
     }
 
     .hero-text {
       margin-top: 18px;
       font-size: 1.05rem;
       color: #c8f5ff;
+      text-align: center;
     }
 
     .hero-text strong {
@@ -181,10 +182,6 @@
       display: inline-flex;
       align-items: baseline;
       gap: 4px;
-    }
-
-    .wallet-amount span {
-      display: inline-block;
     }
 
     .wallet-amount.changed {
@@ -358,6 +355,7 @@
       font-size: 0.78rem;
       color: #9ca3af;
       opacity: 0.85;
+      text-align: center;
     }
   </style>
 </head>
@@ -373,7 +371,6 @@
     </header>
 
     <div class="grid">
-      <!-- Wallet + buttons -->
       <div>
         <div class="wallet-card">
           <div class="wallet-card-inner">
@@ -398,7 +395,6 @@
         </div>
       </div>
 
-      <!-- How it works / trust-building -->
       <div>
         <div class="info-card">
           <div class="info-title">How the Money Loop Works</div>
@@ -431,15 +427,16 @@
   </div>
 
   <script>
+    // 🔧 Change this to your own fork if needed:
     const WALLET_URL = "https://raw.githubusercontent.com/adonte-moneyloop/macahhdon-money-machine/main/total_wallet.txt";
+
     const walletEl = document.getElementById("wallet");
     const walletAmountEl = document.getElementById("wallet-amount");
     const statusEl = document.getElementById("wallet-status");
 
-    let currentValue = null; // numeric value for animation
+    let currentValue = null;
 
     function parseAmount(text) {
-      // Handles formats like "$12.3456"
       const cleaned = text.replace(/[^0-9.\-]/g, "");
       const parsed = parseFloat(cleaned);
       return isNaN(parsed) ? null : parsed;
@@ -467,13 +464,12 @@
       }
 
       if (Math.abs(newVal - currentValue) < 0.0001) {
-        // No visible change
         return;
       }
 
       const start = currentValue;
       const delta = newVal - start;
-      const duration = 600; // ms
+      const duration = 600;
       const startTime = performance.now();
 
       walletAmountEl.classList.add("changed");
@@ -482,7 +478,7 @@
         const t = Math.min((now - startTime) / duration, 1);
         const eased = t < 0.5
           ? 2 * t * t
-          : -1 + (4 - 2 * t) * t; // easeInOutQuad
+          : -1 + (4 - 2 * t) * t;
 
         const value = start + delta * eased;
         walletEl.textContent = formatAmount(value);
@@ -500,7 +496,7 @@
 
     async function refreshWallet() {
       try {
-        const res = await fetch(WALLET_URL, { cache: "no-cache" });
+        const res = await fetch(WALLET_URL + "?t=" + Date.now(), { cache: "no-store" });
         if (!res.ok) throw new Error("HTTP " + res.status);
         const raw = (await res.text()).trim();
         const amt = parseAmount(raw);
@@ -513,10 +509,7 @@
       }
     }
 
-    // Initial load
     refreshWallet();
-
-    // Auto-refresh every 30 seconds to keep LIVE WALLET up to date
     setInterval(refreshWallet, 30000);
   </script>
 </body>
