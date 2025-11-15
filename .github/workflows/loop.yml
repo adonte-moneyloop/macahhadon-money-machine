@@ -36,9 +36,10 @@ jobs:
         run: |
           git config user.email "actions@github.com"
           git config user.name "GitHub Actions"
-          git add wallet_${{ matrix.instance }}.txt || true
+          sleep $((RANDOM % 10))
+          git add wallet_${{ matrix.instance }}.txt
           git commit -m "I${{ matrix.instance }}:$(cat wallet_${{ matrix.instance }}.txt)" || exit 0
-          git push origin main || echo "Push failed, will retry"
+          git push origin main || echo "Push skipped"
 
   sum-wallets:
     needs: run-loop
@@ -49,16 +50,23 @@ jobs:
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
 
+      - name: Wait for all pushes
+        run: sleep 120  # Wait 2 minutes for all 20 jobs
+
+      - name: Pull latest
+        run: git pull --rebase origin main || true
+
       - name: Sum wallets
         run: |
           python -c "
           from decimal import Decimal
           import glob
-          total = sum(Decimal(open(f).read().strip().lstrip('$')) for f in glob.glob('wallet_*.txt') if open(f).read().strip())
+          total = sum(Decimal(open(f).read().strip().lstrip('$')) for f in glob.glob('wallet_*.txt'))
           open('total_wallet.txt', 'w').write(f'${total:.4f}')
           print('TOTAL: ${total:.4f}')
           "
-      - name: Commit total
+
+      - name: Commit total wallet
         run: |
           git config user.email "actions@github.com"
           git config user.name "GitHub Actions"
