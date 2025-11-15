@@ -19,19 +19,17 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
         with:
-          token: ${{ secrets.GITHUB_TOKEN }}
+          token: ${{ secrets.GROK_TOKEN }}
 
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
           python-version: '3.12'
 
-      - name: Install requests
-        run: pip install requests
+      # REMOVED: pip install requests (not needed in ultra-fast mode)
 
       - name: Run loop
         env:
-          GROK_KEY: ${{ secrets.GROK_KEY }}
           INSTANCE_ID: ${{ matrix.instance }}
           ULTRA_FAST: "1"
         run: python loop.py
