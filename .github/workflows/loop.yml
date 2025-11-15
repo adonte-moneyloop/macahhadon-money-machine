@@ -39,9 +39,10 @@ jobs:
         run: |
           git config user.email "actions@github.com"
           git config user.name "GitHub Actions"
+          git pull --rebase origin main || true
           git add wallet_${{ matrix.instance }}.txt
           git commit -m "Instance ${{ matrix.instance }}: $(cat wallet_${{ matrix.instance }}.txt 2>/dev/null || echo '$0.00')" || exit 0
-          git push origin main || echo "Push skipped"
+          git push origin main
 
   sum-wallets:
     needs: run-loop
@@ -55,6 +56,9 @@ jobs:
 
       - name: Wait for all pushes
         run: sleep 60
+
+      - name: Pull latest
+        run: git pull --rebase origin main || true
 
       - name: Sum wallets
         run: |
@@ -81,6 +85,7 @@ jobs:
         run: |
           git config user.email "actions@github.com"
           git config user.name "GitHub Actions"
+          git pull --rebase origin main || true
           git add total_wallet.txt
           git commit -m "MACAHHHDON TOTAL WALLET: $(cat total_wallet.txt)" || exit 0
           git push origin main
