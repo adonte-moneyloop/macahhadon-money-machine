@@ -15,6 +15,7 @@ jobs:
         instance: [1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20]
       fail-fast: false
     runs-on: ubuntu-latest
+
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -43,6 +44,7 @@ jobs:
   sum-wallets:
     needs: run-loop
     runs-on: ubuntu-latest
+
     steps:
       - name: Checkout repository at latest main
         uses: actions/checkout@v4
@@ -58,12 +60,25 @@ jobs:
 
       - name: Sum all instance wallets
         run: |
-          python -c "
+          python - << 'EOF'
           from decimal import Decimal
           import glob
-          total = sum(Decimal(open(f).read().strip().lstrip('$')) for f in glob.glob('wallet_*.txt') if open(f).read().strip())
-          open('total_wallet.txt', 'w').write(f'${total:.4f}')
-          "
+
+          total = Decimal("0")
+          for fpath in glob.glob("wallet_*.txt"):
+            try:
+              with open(fpath, "r") as fh:
+                raw = fh.read().strip().lstrip("$")
+              if not raw:
+                continue
+              total += Decimal(raw)
+            except Exception:
+              # Skip malformed or unreadable wallet files
+              continue
+
+          with open("total_wallet.txt", "w") as out:
+            out.write(f"${total:.4f}")
+          EOF
 
       - name: Commit updated total wallet
         run: |
